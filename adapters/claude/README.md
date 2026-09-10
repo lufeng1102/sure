@@ -2,7 +2,7 @@
 
 让 Claude Code 运行 SURE 技能（`sure_feed` / `sure_onboard` / `sure_trans` / `sure_approve` / `sure_infer` / `sure_eval`）。
 
-SURE 是一个「科学任务」控制平面。每个技能在 `sure/skills/<skill>/` 下定义，包含 `sure.skill.json`（manifest）、`SKILL.md`（agent 操作手册）、`hooks/`（TypeScript 状态机门控）、`scripts/`、`schemas/`。本适配器让 Claude Code 通过 agent 无关的 `sure-engine` CLI 驱动一次技能运行：`start → gate → ... → finish`。
+SURE 是一个「科学任务」控制平面。每个技能在 `sure/skills/<skill>/` 下定义，包含 `sure.skill.json`（manifest）、`SKILL.md`（agent 操作手册）、`hooks/`（TypeScript 状态机门控）、`scripts/`、`schemas/`。本适配器让 Claude Code 通过 agent 无关的 `sure-engine` 的 MCP 工具（结构化调用）驱动一次技能运行：`start → gate → ... → finish`；未装 MCP 时用 CLI 兜底。
 
 ## 快速开始（一键安装，小白向）
 
@@ -12,7 +12,7 @@ SURE 是一个「科学任务」控制平面。每个技能在 `sure/skills/<ski
 bash <repo>/adapters/claude/install.sh
 ```
 
-这一个命令会：构建 `sure-engine`（含 MCP 服务器）、把 6 个技能软链到 `.claude/skills/`、把 8 个斜杠命令软链到 `.claude/commands/`、生成 `config/site.local.yaml`（站点策略）、把 `sure-engine` MCP 服务器注册进 `.mcp.json`（结构化工具调用）。
+这一个命令会：构建 `sure-engine`（含 MCP 服务器）、把 6 个技能复制到 `.claude/skills/`、把 8 个斜杠命令复制到 `.claude/commands/`、生成 `config/site.local.yaml`（站点策略）、把 `sure-engine` MCP 服务器注册进 `.mcp.json`（结构化工具调用）。
 
 然后：
 
@@ -29,7 +29,7 @@ bash <repo>/adapters/claude/install.sh
 
 ## 1. 前置条件：安装 sure-engine
 
-`sure-engine` 已构建在仓库里（`sure-engine/dist/cli.js`），任选一种方式使用：
+`sure-engine` 已构建在仓库里（`sure-engine/dist/cli.js` 与 `sure-engine/dist/mcp.js`），任选一种方式使用：
 
 - **直接用已构建产物（零安装）**：
   ```bash
@@ -41,33 +41,33 @@ bash <repo>/adapters/claude/install.sh
   ```bash
   cd <repo>/sure-engine && npm install --ignore-scripts && npm run build
   ```
-  （构建脚本是 `tsgo -p tsconfig.build.json && chmod +x dist/cli.js`，产物即 `dist/cli.js`。）
+  （构建脚本是 `tsgo -p tsconfig.build.json && chmod +x dist/cli.js dist/mcp.js`，产物即 `dist/cli.js` 与 `dist/mcp.js`。）
 
 - **npm link 成全局命令**：
   ```bash
   cd <repo>/sure-engine && npm link
   sure-engine discover --cwd <repo>
   ```
-  link 之后可直接用 `sure-engine` 替换下文所有 `node <repo>/sure-engine/dist/cli.js`。
+  link 之后可直接用 `sure-engine`（CLI）与 `sure-engine-mcp`（MCP 服务器）替换下文所有 `node <repo>/sure-engine/dist/cli.js`。
 
 `--cwd <repo>` 必须是同时含 `sure/skills/` 与 `config/site.*.yaml` 的目录（本仓库根，或任何部署了 SURE 技能与站点策略的用户项目目录）。
 
 ## 2. 安装技能到 Claude Code
 
-把 `adapters/claude/skills/<skill>/` 复制或软链到用户项目的 `.claude/skills/<name>/`。六个技能逐一执行：
+把 `adapters/claude/skills/<skill>/` 复制（推荐）或软链到用户项目的 `.claude/skills/<name>/`。六个技能逐一执行：
 
 ```bash
 # 在用户项目根目录（不是本仓库根）
 mkdir -p .claude/skills
 
-# 方式 A：软链（推荐，仓库更新即生效）
-for s in sure_feed sure_onboard sure_trans sure_approve sure_infer sure_eval; do
-  ln -sfn "<repo>/adapters/claude/skills/$s" ".claude/skills/$s"
-done
-
-# 方式 B：复制
+# 方式 A：复制（推荐，任何项目目录都可用）
 for s in sure_feed sure_onboard sure_trans sure_approve sure_infer sure_eval; do
   cp -R "<repo>/adapters/claude/skills/$s" ".claude/skills/$s"
+done
+
+# 方式 B：软链（仅当项目目录 == 仓库根时可用；软链指向项目外会被 Claude Code 权限拦截）
+for s in sure_feed sure_onboard sure_trans sure_approve sure_infer sure_eval; do
+  ln -sfn "<repo>/adapters/claude/skills/$s" ".claude/skills/$s"
 done
 ```
 
@@ -75,7 +75,7 @@ done
 
 ## 3. 斜杠命令（直接使用）
 
-`install.sh` 会把 `adapters/claude/commands/*.md` 软链到 `.claude/commands/`，用户可直接敲命令（命令名与 pi 一致）：
+`install.sh` 会把 `adapters/claude/commands/*.md` 复制到 `.claude/commands/`，用户可直接敲命令（命令名与 pi 一致）：
 
 | 命令 | 作用 |
 | --- | --- |
@@ -174,6 +174,5 @@ hooks 配 `adapters/claude/bin/sure-gate.sh` 使用：
 
 ## 7. 注意事项
 
-- **不要**修改 `sure/`、`sure-engine/`、`packages/` 下的现有文件；本适配器只新增 `adapters/claude/` 下的文件。
-- 每个技能 `SKILL.md` 的操作手册正文直接复用 `sure/skills/<skill>/SKILL.md`，仅在末尾追加「引擎驱动协议」。正文里出现的 `/sure_init`、`sure_update_state`、`sure_finish` 是引擎内部概念：`sure_finish` 对应 `run finish`，`sure_update_state` 对应 post 门控通过后的自动推进。
+- 每个技能 `SKILL.md` 的操作手册正文直接复用 `sure/skills/<skill>/SKILL.md`，仅在末尾追加「引擎驱动协议」。手册正文里出现的 `/sure_init`、`sure_update_state`、`sure_finish` 是 pi 引擎内部概念：`/sure_init` 指 pi 的选模型/配网关初始化（与本适配器的 `/sure_init` 运行时体检不同）；`sure_finish` 对应 `run finish`，`sure_update_state` 对应 post 门控通过后的自动推进。
 - `run start` 返回的 `prompt` 里也内嵌了该技能手册与完成协议；agent 以本适配器 `SKILL.md`（含引擎驱动协议）为准。
