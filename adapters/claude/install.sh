@@ -71,6 +71,10 @@ mkdir -p "$PROJECT_DIR/.claude/commands"
 for c in "$REPO_ROOT"/adapters/claude/commands/*.md; do
   cp "$c" "$PROJECT_DIR/.claude/commands/$(basename "$c")"
 done
+# remove stale commands no longer shipped (e.g. former per-skill commands now provided by skills)
+for f in "$PROJECT_DIR"/.claude/commands/*.md; do
+  [ -e "$REPO_ROOT/adapters/claude/commands/$(basename "$f")" ] || rm -f "$f"
+done
 echo "    copied: $(ls "$PROJECT_DIR/.claude/commands" | tr '\n' ' ')"
 
 # 4. site policy

@@ -181,7 +181,7 @@ See `references/agents.md` for the full matching contract, false-positive case, 
 ### 命令序列（MCP 工具）
 
 1. 启动运行（执行 pre_start 门控）：调用 `sure_run_start`，入参
-   `{ "skill": "sure_feed", "args": "url=https://huggingface.co/OpenMOSS-Team/MOSS-Transcribe-Diarize" }`。
+   `{ "skill": "sure_feed", "args": "<用户参数>" }`。若用户以 `/sure_feed <参数>` 带入参数就用它；否则用手册 args 示例（如 `url=https://huggingface.co/OpenMOSS-Team/MOSS-Transcribe-Diarize`）补齐，或先向用户索取必需参数。
    成功返回 `{ ok:true, runId, prompt, record, state }`，**记下 runId**；失败返回 `{ ok:false, repair }`，按 repair 修正后重试。
 
 2. 每次 Bash 操作**前**：调用 `sure_run_gate`，入参

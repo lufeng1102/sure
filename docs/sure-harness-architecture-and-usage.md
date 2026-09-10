@@ -887,7 +887,7 @@ flowchart TB
 ### 7.4 适配器
 
 - **pi**：沿用 `core/sure` 内联路径（Phase 0 已验证：状态机测试 111 通过，剩余失败均为本机 Python 3.12 vs 锁定 3.11 的环境问题）。Phase 2 计划让 `core/sure` 委托引擎、删除内联副本（受打包集成 + Python 3.11 验证阻塞，见 §7.5）。
-- **Claude Code**：`adapters/claude/`——6 个原生 `SKILL.md`（复用 sure/skills 手册 + MCP 驱动协议）+ 8 个斜杠命令 `/sure_init` `/sure_feed` `/sure_onboard` `/sure_trans` `/sure_approve` `/sure_infer` `/sure_eval` `/sure_resume`（`.claude/commands/`，命令名与 pi 一致）+ `install.sh` 一键安装（软链技能/命令 + 写 `.mcp.json` 注册 `sure-engine-mcp`）+ 可选 `--with-hooks` 硬门控加固。agent 通过 MCP 工具 `sure_run_start/gate/finish/...` 结构化驱动；`/sure_init` 执行 `sure-init.sh` 做运行时体检（写 `.sure/init.json`）。
+- **Claude Code**：`adapters/claude/`——6 个原生 `SKILL.md`（复用 sure/skills 手册 + MCP 驱动协议），其 frontmatter `name` 自动注册 `/sure_feed` `/sure_onboard` `/sure_trans` `/sure_approve` `/sure_infer` `/sure_eval`；另有 2 个显式斜杠命令 `/sure_init` `/sure_resume`（`.claude/commands/`，命令名与 pi 一致）+ `install.sh` 一键安装（复制技能/命令 + 写 `.mcp.json` 注册 `sure-engine-mcp`）+ 可选 `--with-hooks` 硬门控加固。agent 通过 MCP 工具 `sure_run_start/gate/finish/...` 结构化驱动；`/sure_init` 执行 `sure-init.sh` 做运行时体检（写 `.sure/init.json`）。
 - **Codex CLI**：`adapters/codex/`——`AGENTS.md` 片段（自包含技能描述 + 引擎命令序列）+ 可选 MCP 加固示例。
 
 ### 7.5 解耦进度与后续

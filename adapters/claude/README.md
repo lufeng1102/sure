@@ -12,7 +12,7 @@ SURE 是一个「科学任务」控制平面。每个技能在 `sure/skills/<ski
 bash <repo>/adapters/claude/install.sh
 ```
 
-这一个命令会：构建 `sure-engine`（含 MCP 服务器）、把 6 个技能复制到 `.claude/skills/`、把 8 个斜杠命令复制到 `.claude/commands/`、生成 `config/site.local.yaml`（站点策略）、把 `sure-engine` MCP 服务器注册进 `.mcp.json`（结构化工具调用）。
+这一个命令会：构建 `sure-engine`（含 MCP 服务器）、把 6 个技能复制到 `.claude/skills/`（自动注册 `/sure_feed`…`/sure_eval`）、把 `sure_init`/`sure_resume` 两个斜杠命令复制到 `.claude/commands/`、生成 `config/site.local.yaml`（站点策略）、把 `sure-engine` MCP 服务器注册进 `.mcp.json`（结构化工具调用）。
 
 然后：
 
@@ -75,20 +75,21 @@ done
 
 ## 3. 斜杠命令（直接使用）
 
-`install.sh` 会把 `adapters/claude/commands/*.md` 复制到 `.claude/commands/`，用户可直接敲命令（命令名与 pi 一致）：
+8 个 `/sure_*` 命令都可用（命令名与 pi 一致），但来源不同——**6 个技能命令由技能自动注册，避免重复**：
 
-| 命令 | 作用 |
-| --- | --- |
-| `/sure_init` | 初始化运行时体检（`site.local.yaml` + Python 3.11 + 引擎 + 评估引擎子模块），写 `.sure/init.json` |
-| `/sure_feed <args>` | 录入外部来源到资源池并启动运行 |
-| `/sure_onboard <args>` | 模型上线（runtime inventory + 部署就绪） |
-| `/sure_trans <args>` | 模型转可上线产物 |
-| `/sure_approve <args>` | 审批已完成的模型产物 |
-| `/sure_infer <args>` | 推理生成预测 |
-| `/sure_eval <args>` | 评估产出指标 |
-| `/sure_resume [<runId>]` | 续接最近一次可续接的运行 |
+| 命令 | 作用 | 来源 |
+| --- | --- | --- |
+| `/sure_feed <args>` | 录入外部来源到资源池并启动运行 | 技能 |
+| `/sure_onboard <args>` | 模型上线（runtime inventory + 部署就绪） | 技能 |
+| `/sure_trans <args>` | 模型转可上线产物 | 技能 |
+| `/sure_approve <args>` | 审批已完成的模型产物 | 技能 |
+| `/sure_infer <args>` | 推理生成预测 | 技能 |
+| `/sure_eval <args>` | 评估产出指标 | 技能 |
+| `/sure_init` | 初始化运行时体检，写 `.sure/init.json` | 命令 |
+| `/sure_resume [<runId>]` | 续接最近一次可续接的运行 | 命令 |
 
-每个命令的 `.md` 正文都是一段「prompt 模板」：`$ARGUMENTS` 透传用户参数，agent 读取对应技能手册并用 MCP 工具 `sure_run_start/gate/finish` 驱动到终态。`/sure_init` 则执行 `adapters/claude/bin/sure-init.sh`（自定位仓库根，幂等、非破坏）。
+- 6 个技能命令由 `.claude/skills/<skill>/SKILL.md` 的 frontmatter `name` 自动注册，**无需额外命令文件**（否则会与同名命令撞车）。敲 `/sure_feed <参数>` 时，参数作为 `<用户参数>` 传给 `sure_run_start`；不带参数则用手册 args 示例补齐或向用户索取。
+- `/sure_init`、`/sure_resume` 不是技能，由 `adapters/claude/commands/*.md` 提供。`install.sh` 把它们复制到 `.claude/commands/`，并清理不再随附的旧命令文件。`/sure_init` 执行 `adapters/claude/bin/sure-init.sh`（自定位仓库根，幂等、非破坏）。
 
 ## 4. 运行方式
 
