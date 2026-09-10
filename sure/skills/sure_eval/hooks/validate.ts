@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { SureHookContext } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext } from "../../../runtime/contract.ts";
 import type { GateResult, Unit } from "./checkpoints.ts";
 
 // Product (produces) validation: three tiers, mirroring the SURE-EVAL unit

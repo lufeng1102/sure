@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { SureHookContext, SureHookResult } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext, SureHookResult } from "../../../runtime/contract.ts";
 import {
 	type HarnessRuntimeContract,
 	harnessRuntimeEnv,

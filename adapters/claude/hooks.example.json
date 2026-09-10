@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SURE_REPO_ROOT=<repo> bash <repo>/adapters/claude/bin/sure-gate.sh pre_tool_call"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SURE_REPO_ROOT=<repo> bash <repo>/adapters/claude/bin/sure-gate.sh post_tool_result"
+          }
+        ]
+      }
+    ]
+  }
+}

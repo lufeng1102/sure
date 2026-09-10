@@ -1,4 +1,4 @@
-import type { SureHookContext } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext } from "../../../runtime/contract.ts";
 import type { GateResult } from "./checkpoints.ts";
 
 // SURE-EVAL state machine: score an inference bundle with the evaluation

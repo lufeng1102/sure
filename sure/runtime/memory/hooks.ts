@@ -14,7 +14,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, normalize, relative, sep } from "node:path";
-import type { SureHookContext } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext } from "../contract.ts";
 import {
 	type HarnessRuntimeContract,
 	harnessRuntimeEnv,

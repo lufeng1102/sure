@@ -1,0 +1,82 @@
+# Codex config.toml 片段 —— 可选加固：把 sure-engine 暴露为 MCP tools
+#
+# 这是「把 agent 自觉调用 shell 升级为结构化工具调用」的加固路径，非必需。
+# 不启用 MCP 时，直接按 AGENTS.sure.md 的 shell 协议即可。
+#
+# 说明：Codex 的 MCP 注册项在 config.toml 里的顶层键是 `mcp_servers`（TOML，
+# 注意不是 JSON 里的 `mcpServers`，也不是 `[mcp]`）。本文件放到
+# ~/.codex/config.toml（全局）或项目 config.toml 均可。
+#
+# `command`/`args` 指向一个薄的 MCP 包装器（见下方伪代码），它内部仍是
+# `node <repo>/sure-engine/dist/cli.js` 的 stdio JSON-RPC 封装，不改变引擎契约。
+
+[mcp_servers.sure]
+command = "node"
+args = ["<repo>/adapters/codex/sure-mcp-server.mjs"]
+env = { "SURE_REPO" = "<repo>" }   # 包装器据此拼 --cwd；也可用项目根替代
+
+# ---------------------------------------------------------------------------
+# MCP 服务器工具设计（包装器把以下 tool 映射到 sure-engine 子命令）
+# ---------------------------------------------------------------------------
+#
+# 每个 tool 的返回都直接透传引擎的 JSON stdout（含 ok/repair/allowed/state）。
+# 关键点：把 `allowed:false` 从「自觉停下」变成「工具级硬约束」——Codex 拿到的
+# 是结构化结果，且 pre/post gate 变成显式工具调用，漏调更容易被发现。
+#
+# tool: sure_discover
+#   入参: {}   （可选 { cwd: string }）
+#   返回: {"packages": [...], "diagnostics": [...]}
+#   对应: sure-engine discover --cwd <cwd>
+#
+# tool: sure_start
+#   入参: { skill: string, args?: string, cwd?: string }
+#   返回: { ok, runId?, prompt?, record?, state?, repair? }
+#   对应: sure-engine run start --cwd <cwd> --skill <skill> --args <args>
+#
+# tool: sure_gate
+#   入参: { run: string, point: "pre_tool_call"|"post_tool_result",
+#           tool?: string, command?: string, is_error?: boolean }
+#   返回: { ok, allowed?, repair?, state? }
+#   对应: sure-engine run gate --cwd <cwd> --run <run>
+#           --point <point> --tool <tool>
+#           [--input-json {"command":"..."}] [--is-error]
+#   语义: pre_tool_call 需传 command；allowed:false 时 Codex 必须按 repair 修正后重试。
+#
+# tool: sure_state
+#   入参: { run: string }
+#   返回: { ok, runId, record, status, state? }
+#   对应: sure-engine run state --cwd <cwd> --run <run>
+#
+# tool: sure_finish
+#   入参: { run: string, status: "success"|"incomplete"|"failed",
+#           manifest: string, summary?: string, error_summary?: string }
+#   返回: { ok, runId?, status?, record?, state?, repair? }
+#   对应: sure-engine run finish --cwd <cwd> --run <run> --status <status>
+#           --manifest <manifest> [--summary ...] [--error-summary ...]
+#   语义: manifest 校验失败返回 ok:false + repair；这是伪造成功的兜底。
+#
+# tool: sure_resume
+#   入参: { run?: string }
+#   返回: { ok, runId?, prompt?, state?, repair? }
+#   对应: sure-engine run resume --cwd <cwd> [--run <run>]
+#
+# tool: sure_on_error
+#   入参: { run: string, reason?: string }
+#   返回: { ok, runId, record, state? }
+#   对应: sure-engine run on-error --cwd <cwd> --run <run> [--reason ...]
+#
+# ---------------------------------------------------------------------------
+# 包装器伪代码要点（sure-mcp-server.mjs，纯 Node stdlib，不引入 @modelcontextprotocol/sdk）
+# ---------------------------------------------------------------------------
+#
+#   1. 读 env.SURE_REPO 得到 <repo>；缺省用进程 cwd。
+#   2. 通过 stdin/stdout 说 MCP stdio JSON-RPC：处理 initialize、tools/list、tools/call。
+#   3. tools/list 返回上表 7 个 tool 的 inputSchema（JSON Schema）。
+#   4. tools/call 把每个 tool 名映射到 child_process.spawnSync("node",
+#      ["<repo>/sure-engine/dist/cli.js", ...args])，把 stdout JSON parse 后作为
+#      tool 结果返回（mcp content: [{type:"text", text: JSON.stringify(out)}]）。
+#   5. 不在包装器里缓存/改写引擎状态；runId、state 全部透传，状态唯一真相在引擎的
+#      .sure/runs/ 里（与 shell 方式完全一致，可混用）。
+#
+# 说明：真正落地 MCP 服务器时，stdio JSON-RPC 帧解析可以按 MCP 规范自实现，
+# 或引入 @modelcontextprotocol/sdk；本示例只描述设计，不引入该依赖。

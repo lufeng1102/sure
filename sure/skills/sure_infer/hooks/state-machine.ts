@@ -1,4 +1,4 @@
-import type { SureHookContext } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext } from "../../../runtime/contract.ts";
 import type { GateResult } from "./checkpoints.ts";
 
 // SURE-INFER state machine: run an approved model over the selected datasets.

@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { SureHookContext, SureHookResult } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext, SureHookResult } from "../../../runtime/contract.ts";
 import { harnessRuntimeEnv, resolveHarnessPython } from "../../../runtime/harness/resolve.ts";
 import { invokedSkillScripts } from "../../../runtime/script-guard.ts";
 import {

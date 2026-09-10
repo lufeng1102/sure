@@ -1,0 +1,16 @@
+{
+	"name": "sure-engine",
+	"version": "0.1.0",
+	"type": "module",
+	"bin": {
+		"sure-engine": "./dist/cli.js",
+		"sure-engine-mcp": "./dist/mcp.js"
+	},
+	"scripts": {
+		"build": "tsgo -p tsconfig.build.json && chmod +x dist/cli.js dist/mcp.js"
+	},
+	"dependencies": {
+		"jiti": "2.7.0",
+		"yaml": "2.9.0"
+	}
+}

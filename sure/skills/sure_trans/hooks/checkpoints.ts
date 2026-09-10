@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import type { SureHookContext, SureHookResult } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext, SureHookResult } from "../../../runtime/contract.ts";
 import { harnessRuntimeEnv, resolveHarnessPython } from "../../../runtime/harness/resolve.ts";
 import { type MemoryCheckpoint, type MemoryDiagnostic, readMemory } from "../../../runtime/memory/hooks.ts";
 import { FIRST_UNIT, LAST_UNIT, nextUnit } from "./state-machine.ts";

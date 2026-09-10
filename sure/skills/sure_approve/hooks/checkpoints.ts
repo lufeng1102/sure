@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { SureHookContext } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext } from "../../../runtime/contract.ts";
 import { type ApproveMode, nextUnit, unitsForMode } from "./state-machine.ts";
 
 export interface CheckpointData {

@@ -1,4 +1,4 @@
-import type { SureHookContext } from "@earendil-works/pi-coding-agent/hooks";
+import type { SureHookContext } from "../../../runtime/contract.ts";
 import type { GateResult } from "./checkpoints.ts";
 
 // SURE-EVAL model-tool agent state machine, ported from the upstream

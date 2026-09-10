@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import type { SureHookContext, SureHookResult } from "@earendil-works/pi-coding-agent/hooks";
 import { agentBinDir, demoteAgentBinDir } from "../../../runtime/agent-path.ts";
+import type { SureHookContext, SureHookResult } from "../../../runtime/contract.ts";
 import { type HarnessRuntimeContract, resolveHarnessPython } from "../../../runtime/harness/resolve.ts";
 import {
 	gateUnavailable,
