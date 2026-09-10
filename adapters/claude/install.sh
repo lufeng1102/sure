@@ -8,14 +8,16 @@
 #   4. Copies config/site.example.yaml -> config/site.local.yaml (if missing).
 #   5. Registers the sure-engine MCP server in <project>/.mcp.json (unless --no-mcp).
 #   6. --with-hooks: merges the Bash gate hooks into <project>/.claude/settings.json.
+#   7. --uninstall: removes the skills, slash commands, MCP entry, hooks and .sure/ state.
 #
 # Usage:
-#   install.sh [--project <dir>] [--no-mcp] [--with-hooks] [--rebuild]
+#   install.sh [--project <dir>] [--no-mcp] [--with-hooks] [--rebuild] [--uninstall]
 #
 #   --project <dir>   Claude Code project dir (where you run `claude`). Default: cwd.
 #   --no-mcp          Skip writing the MCP server config (.mcp.json).
 #   --with-hooks      Also install the hard-gating Bash hooks (auto gate every shell).
 #   --rebuild         Rebuild sure-engine even if dist/cli.js already exists.
+#   --uninstall       Remove everything this installer created (skills/commands/MCP/hooks/.sure).
 
 set -euo pipefail
 
@@ -24,10 +26,11 @@ PROJECT_DIR="$(pwd)"
 WITH_MCP=1
 WITH_HOOKS=0
 REBUILD=0
+UNINSTALL=0
 SKILLS=(sure_feed sure_onboard sure_trans sure_approve sure_infer sure_eval)
 
 usage() {
-  echo "usage: install.sh [--project <dir>] [--no-mcp] [--with-hooks] [--rebuild]" >&2
+  echo "usage: install.sh [--project <dir>] [--no-mcp] [--with-hooks] [--rebuild] [--uninstall]" >&2
   exit 0
 }
 
@@ -37,12 +40,87 @@ while [ $# -gt 0 ]; do
     --no-mcp) WITH_MCP=0; shift ;;
     --with-hooks) WITH_HOOKS=1; shift ;;
     --rebuild) REBUILD=1; shift ;;
+    --uninstall) UNINSTALL=1; shift ;;
     -h|--help) usage ;;
     *) echo "unknown option: $1" >&2; usage ;;
   esac
 done
 
 PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
+
+# Uninstall path: remove everything this installer creates.
+if [ "$UNINSTALL" = 1 ]; then
+  echo "==> sure-harness uninstaller"
+  echo "    project: $PROJECT_DIR"
+
+  echo "==> removing skills"
+  rm -rf "$PROJECT_DIR/.claude/skills/sure_feed" "$PROJECT_DIR/.claude/skills/sure_onboard" \
+         "$PROJECT_DIR/.claude/skills/sure_trans" "$PROJECT_DIR/.claude/skills/sure_approve" \
+         "$PROJECT_DIR/.claude/skills/sure_infer" "$PROJECT_DIR/.claude/skills/sure_eval"
+
+  echo "==> removing slash commands"
+  rm -f "$PROJECT_DIR"/.claude/commands/sure_*.md
+
+  echo "==> removing MCP server entry"
+  node - "$PROJECT_DIR" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+const [project] = process.argv.slice(2);
+const mcpPath = path.join(project, ".mcp.json");
+if (!fs.existsSync(mcpPath)) {
+  console.log("    no .mcp.json found");
+} else {
+  const mcp = JSON.parse(fs.readFileSync(mcpPath, "utf8"));
+  if (mcp.mcpServers) {
+    delete mcp.mcpServers.sure;
+    if (Object.keys(mcp.mcpServers).length === 0) delete mcp.mcpServers;
+  }
+  if (Object.keys(mcp).length === 0) {
+    fs.unlinkSync(mcpPath);
+    console.log("    removed .mcp.json (no servers left)");
+  } else {
+    fs.writeFileSync(mcpPath, JSON.stringify(mcp, null, 2) + "\n");
+    console.log("    removed mcpServers.sure (kept other servers)");
+  }
+}
+NODE
+
+  echo "==> removing Bash gate hooks"
+  node - "$PROJECT_DIR" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+const [project] = process.argv.slice(2);
+const settingsPath = path.join(project, ".claude", "settings.json");
+if (!fs.existsSync(settingsPath)) {
+  console.log("    no .claude/settings.json found");
+} else {
+  const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+  let removed = 0;
+  if (settings.hooks) {
+    for (const event of Object.keys(settings.hooks)) {
+      const before = settings.hooks[event].length;
+      settings.hooks[event] = settings.hooks[event].filter(
+        (g) => !(g.hooks || []).some((h) => (h.command || "").includes("sure-gate.sh"))
+      );
+      removed += before - settings.hooks[event].length;
+      if (settings.hooks[event].length === 0) delete settings.hooks[event];
+    }
+    if (Object.keys(settings.hooks).length === 0) delete settings.hooks;
+  }
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+  console.log("    removed " + removed + " sure-gate hook group(s)");
+}
+NODE
+
+  echo "==> removing runtime state"
+  rm -rf "$PROJECT_DIR/.sure"
+
+  echo
+  echo "Done. sure-harness removed from $PROJECT_DIR."
+  echo "Note: config/site.local.yaml (in the repo) and the per-user MCP approval are left intact."
+  echo "      Reinstall with: bash <repo>/adapters/claude/install.sh --project $PROJECT_DIR"
+  exit 0
+fi
 
 echo "==> sure-harness -> Claude Code installer"
 echo "    repo:    $REPO_ROOT"

@@ -23,7 +23,7 @@ bash <repo>/adapters/claude/install.sh
    - 自然语言：如「把这个模型上线」「给这批预测打分」，技能自动发现。
    - 两种方式最终都由 agent 通过 MCP 工具 `sure_run_start` / `sure_run_gate` / `sure_run_finish` 结构化驱动（不再手写 bash+JSON）。
 
-`install.sh` 选项：`--project <dir>`（装到别的项目目录）、`--no-mcp`（跳过 MCP 注册）、`--with-hooks`（额外装 Bash 硬门控 hooks，加固用）、`--rebuild`（强制重建引擎）。
+`install.sh` 选项：`--project <dir>`（装到别的项目目录）、`--no-mcp`（跳过 MCP 注册）、`--with-hooks`（额外装 Bash 硬门控 hooks，加固用）、`--rebuild`（强制重建引擎）、`--uninstall`（删除本脚本装的一切：技能/命令/MCP/hooks/`.sure/`，用于干净重装）。
 
 > 前置依赖：Node（跑 `sure-engine`）与 Python 3.11（Harness Runtime 锁定版本；本机是 3.12 时会报 `HARNESS_RUNTIME_NOT_READY`）。
 
